@@ -2,7 +2,7 @@ import slack
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from flask import Flask, Request, Response
+from flask import Flask, request, Response
 from slackeventsapi import SlackEventAdapter
 
 # Importing the .env
@@ -41,6 +41,9 @@ def parse_text_greeting(text, word='Hello'):
             return "Hi, Human!"
     return "I can't Understand you."
 
+# PUT THIS ON A DATABASE
+message_counts = {}
+
 @slack_event_adapter.on('message')
 def message(payload):
     event = payload.get('event', {})
@@ -49,11 +52,23 @@ def message(payload):
     text = event.get('text')
     
     if user_id != BOT_ID:
+        
+        if user_id in message_counts:
+            message_counts[user_id] += 1
+        else:
+            message_counts[user_id] = 1
+
         return_text = parse_text_greeting(text)
         client.chat_postMessage(channel=channel_id,text=return_text)
 
-@app.route('/message-count')
+@app.route('/message-count', methods=['POST'])
 def message_count():
+    data = request.form
+    user_id = data.get('user_id')
+    channel_id = data.get('channel_id')
+    n_messages = message_counts.get(user_id, 0)
+
+    client.chat_postMessage(channel=channel_id,text=f"Message: {n_messages}")
     return Response(), 200
 
 if __name__ == '__main__':
