@@ -2,8 +2,11 @@ import slack
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from flask import Flask, request, Response
 from slackeventsapi import SlackEventAdapter
+
+from flask import Flask, request, Response
+
+from helpers import parse_text_greeting
 
 # Importing the .env
 env_path = Path('.') / '.env'
@@ -22,24 +25,6 @@ slack_event_adapter = SlackEventAdapter(signing_secret, '/slack/events',app)
 # Set up slack client
 client = slack.WebClient(token=token)
 BOT_ID = client.api_call("auth.test")['user_id']
-
-def parse_text_greeting(text, word='Hello'):
-    """ Parse recieved text to return a greeting.
-
-    Args:
-        text (string): string recieved from slack POST.
-        word (str, optional): Word that you want in your text. Defaults to 'Hello'.
-
-    Returns:
-        string: Returns a string with a greeting or another if the greeting
-        is not in the text
-
-    """
-    special_characters = [' ', '!', '.', ',']
-    for char in special_characters:
-        if word in text.split(char):
-            return "Hi, Human!"
-    return "I can't Understand you."
 
 # PUT THIS ON A DATABASE
 message_counts = {}
@@ -61,14 +46,17 @@ def message(payload):
         return_text = parse_text_greeting(text)
         client.chat_postMessage(channel=channel_id,text=return_text)
 
-@app.route('/message-count', methods=['POST'])
+@app.route('/message-count', methods=['POST','GET'])
 def message_count():
     data = request.form
     user_id = data.get('user_id')
     channel_id = data.get('channel_id')
     n_messages = message_counts.get(user_id, 0)
-
-    client.chat_postMessage(channel=channel_id,text=f"Message: {n_messages}")
+    
+    # Check if you are testing the app
+    if not app.testing:
+        client.chat_postMessage(channel=channel_id,text=f"Message: {n_messages}")
+    
     return Response(), 200
 
 if __name__ == '__main__':

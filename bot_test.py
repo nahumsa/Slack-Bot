@@ -1,5 +1,6 @@
 import unittest
 import bot
+import helpers
 
 class MyTestCase(unittest.TestCase):
 
@@ -16,11 +17,11 @@ class MyTestCase(unittest.TestCase):
     
     def test_message_count(self):
         response = self.app.get('/message-count')
-        self.assertEqual(200, response.status_code, msg="Testing Endpoint")
+        self.assertEqual(200, response.status_code, msg="Status Code Fail")
 
     def test_parse_text_greeting(self):
         for text, expected in self.text_test:
-            self.assertEqual(bot.parse_text_greeting(text), expected, msg="Testing parse_text_greeting")
+            self.assertEqual(helpers.parse_text_greeting(text), expected, msg="parse_text_greeting Fail")
 
 if __name__ == '__main__':
     unittest.main()
